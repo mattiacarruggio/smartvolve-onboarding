@@ -1,0 +1,12 @@
+.git
+.github
+.next
+node_modules
+*.md
+.DS_Store
+.env*
+.dockerignore
+Dockerfile
+deploy.sh
+.cloudrun-url
+.gitignore
