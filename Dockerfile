@@ -1,36 +1,20 @@
-FROM node:20-slim AS base
-
-# ── Dependencies stage ──────────────────────────────────────────────
-FROM base AS deps
+FROM node:20-slim AS builder
 WORKDIR /app
+
+# Installa tutte le dipendenze, comprese dev (Tailwind serve a build time)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
-# ── Build stage ─────────────────────────────────────────────────────
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-# ── Production stage ────────────────────────────────────────────────
-FROM base AS runner
+FROM node:20-slim AS runner
 WORKDIR /app
-
-ENV NODE_ENV=production
-ENV PORT=8080
-ENV HOSTNAME="0.0.0.0"
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
-
-# Copy standalone output
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
+ENV NODE_ENV production
 EXPOSE 8080
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder /app/public ./public
 
+USER node
 CMD ["node", "server.js"]
