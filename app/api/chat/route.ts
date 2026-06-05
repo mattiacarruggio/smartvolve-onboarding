@@ -1,8 +1,9 @@
 /**
  * POST /api/chat — proxy to the SmartVolve Cloud Run backend.
  *
- * Accepts { text: string; tenantId: string } and forwards it to the
- * Cloud Run endpoint, keeping the external URL out of the client bundle.
+ * Accepts { text: string; tenantId: string; sessionId?: string } and forwards it
+ * to the Cloud Run endpoint. When the client provides sessionId, the backend
+ * continues the same conversation instead of starting a new one.
  */
 
 const CLOUD_RUN_URL =
@@ -10,7 +11,7 @@ const CLOUD_RUN_URL =
 
 export async function POST(request: Request) {
   /* ── Parse & validate incoming body ──────────────────────────────────── */
-  let body: { text?: string; tenantId?: string };
+  let body: { text?: string; tenantId?: string; sessionId?: string };
 
   try {
     body = await request.json();
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { text, tenantId } = body;
+  const { text, tenantId, sessionId } = body;
 
   if (!text || typeof text !== "string") {
     return Response.json(
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const upstream = await fetch(CLOUD_RUN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, tenantId }),
+      body: JSON.stringify({ text, tenantId, sessionId }),
     });
 
     if (!upstream.ok) {
